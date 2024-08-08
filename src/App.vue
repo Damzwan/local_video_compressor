@@ -92,7 +92,7 @@
           Compress
         </button>
 
-        <button class="btn btn-primary mt-4" @click="reset">
+        <button class="btn btn-secondary mt-4" @click="reset">
           Choose another file
         </button>
       </div>
@@ -208,7 +208,10 @@ useDraggable(inbetweenRect, {
     const newRightHandleX =
       newLeftHandleX + inbetweenBoxWidth.value - rightHandle.value!.offsetWidth;
 
-    if (newRightHandleX <= timeline.value!.getBoundingClientRect().width) {
+    if (
+      newLeftHandleX >= 0 &&
+      newRightHandleX <= timeline.value!.getBoundingClientRect().width
+    ) {
       leftHandleX.value = newLeftHandleX;
       rightHandleX.value = newRightHandleX;
       calcInBetweenBoxPos();
@@ -275,9 +278,13 @@ function calcInBetweenBoxPos() {
 }
 
 function handleKeydown(event: KeyboardEvent) {
+  if (!showVideoEditing.value) return
   if (event.code === "Space") {
     event.preventDefault();
     togglePlayPause();
+  } else if (event.code === "Enter") {
+    event.preventDefault();
+    processVideo();
   }
 }
 
@@ -398,7 +405,7 @@ async function processVideo() {
     await ffmpeg.exec(ffmpegArgs);
 
     // Read the processed video from FFmpeg's virtual filesystem
-    const data = await ffmpeg.readFile("output.mp4") as any;
+    const data = (await ffmpeg.readFile("output.mp4")) as any;
     const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
     const videoUrl = URL.createObjectURL(videoBlob);
 
@@ -410,7 +417,7 @@ async function processVideo() {
     a.click();
     document.body.removeChild(a);
     isProcessing.value = false;
-    processProgress.value = 0
+    processProgress.value = 0;
   };
 }
 
@@ -423,8 +430,10 @@ function formatTime(time: number) {
     .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
-function reset(){
+function reset() {
   showVideoEditing.value = false;
+  leftHandleX.value = 0;
+  fileInput.value.value = null;
 }
 </script>
 
