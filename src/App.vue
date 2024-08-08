@@ -398,7 +398,7 @@ async function processVideo() {
     await ffmpeg.exec(ffmpegArgs);
 
     // Read the processed video from FFmpeg's virtual filesystem
-    const data = await ffmpeg.readFile("output.mp4");
+    const data = await ffmpeg.readFile("output.mp4") as any;
     const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
     const videoUrl = URL.createObjectURL(videoBlob);
 
