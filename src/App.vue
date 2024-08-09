@@ -1,17 +1,18 @@
 <template>
   <div>
+    <div class="w-full flex justify-center items-center flex-col px-12 pt-4">
+      <p class="text-white text-2xl font-bold mb-2">
+        Local Video Compressor - No Upload Required!
+      </p>
+      <p class="text-white text-lg">
+        Unlike most online compressors that upload videos to a server, this tool
+        processes everything locally, ensuring quick and private compression
+        even with a slow internet connection.
+      </p>
+    </div>
     <div v-show="showVideoEditing">
-      <div
-        v-show="!isProcessing"
-        class="flex flex-col justify-center items-center p-8"
-      >
-        <video
-          ref="playerRef"
-          class="video-js cursor-pointer"
-          width="500"
-          @click="togglePlayPause"
-          muted
-        ></video>
+      <div v-show="!isProcessing" class="flex flex-col justify-center items-center p-8">
+        <video ref="playerRef" class="video-js cursor-pointer" width="500" @click="togglePlayPause" muted></video>
 
         <div class="flex items-center mt-4">
           <button class="btn btn-primary" @click="togglePlayPause">
@@ -26,69 +27,28 @@
           <p class="ml-4">Video Size: {{ videoSize }} MB</p>
         </div>
 
-        <div
-          class="w-full h-16 rounded-sm bg-gray-700 mt-4 relative"
-          ref="timeline"
-        >
-          <div
-            class="w-2 h-full absolute bg-red-200 cursor-move z-10 opacity-50"
-            :style="{ left: `${leftHandleX}px` }"
-            ref="leftHandle"
-          />
-          <div
-            class="w-2 h-full absolute bg-red-200 cursor-move z-10 opacity-50"
-            :style="{ left: `${rightHandleX}px` }"
-            ref="rightHandle"
-          />
+        <div class="w-full h-16 rounded-sm bg-gray-700 mt-4 relative" ref="timeline">
+          <div class="w-2 h-full absolute bg-red-200 cursor-move z-10 opacity-50" :style="{ left: `${leftHandleX}px` }"
+            ref="leftHandle" />
+          <div class="w-2 h-full absolute bg-red-200 cursor-move z-10 opacity-50" :style="{ left: `${rightHandleX}px` }"
+            ref="rightHandle" />
 
-          <div
-            class="absolute h-full bg-blue-200 opacity-50 cursor-move"
-            :style="{
-              left: `${inbetweenBoxLeft}px`,
-              width: `${inbetweenBoxWidth}px`,
-            }"
-            ref="inbetweenRect"
-          />
+          <div class="absolute h-full bg-blue-200 opacity-50 cursor-move" :style="{
+            left: `${inbetweenBoxLeft}px`,
+            width: `${inbetweenBoxWidth}px`,
+          }" ref="inbetweenRect" />
 
-          <div
-            class="absolute w-0.5 h-full bg-red-600"
-            :style="{ left: `${redLineX}%` }"
-          />
+          <div class="absolute w-0.5 h-full bg-red-600" :style="{ left: `${redLineX}%` }" />
 
-          <!-- <div class="absolute w-full bottom-0">
-          <p
-            v-for="index in timestepCount + 1"
-            :key="index"
-            class="absolute mr-3 select-none"
-            :style="{ left: `${(index - 1) * timestepCount}%` }"
-          >
-            {{ Math.round(duration * ((index - 1) / timestepCount)) }}
-          </p>
-        </div> -->
+
         </div>
 
         <div class="flex items-center mt-4">
-          <label class="mr-2">Resolution:</label>
-          <select v-model="resolution" class="select select-bordered">
-            <option value="240">240p</option>
-            <option value="360">360p</option>
-            <option value="480">480p</option>
-            <option value="720">720p</option>
-          </select>
-
-          <label class="ml-4 mr-2">Bitrate:</label>
-          <input
-            type="number"
-            v-model="bitrate"
-            class="input input-bordered"
-            min="50"
-            max="1000"
-            step="50"
-          />
-          kbps
+          <label class="ml-4 mr-2">Target Size (MB):</label>
+          <input type="number" v-model="targetSizeMB" class="input input-bordered" min="1" step="1" />
         </div>
 
-        <button class="btn btn-primary mt-4" @click="processVideo">
+        <button class="btn btn-primary mt-4" @click="() => processVideo()">
           Compress
         </button>
 
@@ -96,36 +56,20 @@
           Choose another file
         </button>
       </div>
-      <div
-        v-show="isProcessing"
-        class="flex flex-col justify-center items-center p-8"
-      >
-        <p class="text-xl">Processing...</p>
-        <progress
-          class="progress progress-primary w-96 mt-3"
-          :value="processProgress"
-          max="100"
-        ></progress>
+      <div v-show="isProcessing" class="flex flex-col justify-center items-center p-8">
+        <p class="text-2xl">Processing...</p>
+        <p class="text-lg">{{ `Attempt ${iteration + 1}: Trying resolution ${resolution
+          } and bitrate ${bitrate} kbps` }}</p>
+
+        <progress class="progress progress-primary w-96 mt-3" :value="processProgress" max="100"></progress>
       </div>
     </div>
 
-    <div
-      v-show="!showVideoEditing"
-      class="flex flex-col justify-center items-center p-8"
-    >
-      <input
-        accept="video/*"
-        type="file"
-        ref="fileInput"
-        class="file-input file-input-bordered w-full max-w-xs"
-        @change="onFileChanged"
-      />
-      <div
-        class="mt-4 w-full max-w-lg border-2 border-dashed border-gray-500 p-8 text-center rounded-md cursor-pointer"
-        @dragover.prevent
-        @drop.prevent="handleDrop"
-        @click="handleClick"
-      >
+    <div v-show="!showVideoEditing" class="flex flex-col justify-center items-center p-8">
+      <input accept=".mkv, .mp4" type="file" ref="fileInput" class="file-input file-input-bordered w-full max-w-xs"
+        @change="onFileChanged" />
+      <div class="mt-4 w-full max-w-lg border-2 border-dashed border-gray-500 p-8 text-center rounded-md cursor-pointer"
+        @dragover.prevent @drop.prevent="handleDrop" @click="handleClick">
         <p class="text-gray-500">
           Drag and drop video file here, or click to select files
         </p>
@@ -159,12 +103,15 @@ const offsetBetweenHandles = 5;
 const isProcessing = ref(false);
 const processProgress = ref(0);
 
+const targetSizeMB = ref(10);
 const resolution = ref("360");
 const bitrate = ref(200);
 const videoSize = ref(0);
 const selectedStartTime = ref(0);
 const selectedDuration = ref(0);
 const isPlaying = ref(true);
+
+const iteration = ref(0);
 
 useDraggable(leftHandle, {
   containerElement: timeline,
@@ -176,7 +123,7 @@ useDraggable(leftHandle, {
     calcInBetweenBoxPos();
     player.currentTime(
       (leftHandleX.value / timeline.value!.getBoundingClientRect().width) *
-        player.duration()
+      player.duration()
     );
     calcSelectedStartTimeAndDuration();
   },
@@ -192,7 +139,7 @@ useDraggable(rightHandle, {
     calcInBetweenBoxPos();
     player.currentTime(
       (rightHandleX.value / timeline.value!.getBoundingClientRect().width) *
-        player.duration()
+      player.duration()
     );
     calcSelectedStartTimeAndDuration();
   },
@@ -218,7 +165,7 @@ useDraggable(inbetweenRect, {
       calcSelectedStartTimeAndDuration();
       player.currentTime(
         (leftHandleX.value / timeline.value!.getBoundingClientRect().width) *
-          player.duration()
+        player.duration()
       );
     }
   },
@@ -248,7 +195,7 @@ onMounted(() => {
     )
       player.currentTime(
         (leftHandleX.value / timeline.value!.getBoundingClientRect().width) *
-          player.duration()
+        player.duration()
       );
     else redLineX.value = timeInVideo * 100;
   });
@@ -278,7 +225,7 @@ function calcInBetweenBoxPos() {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (!showVideoEditing.value) return
+  if (!showVideoEditing.value) return;
   if (event.code === "Space") {
     event.preventDefault();
     togglePlayPause();
@@ -302,7 +249,63 @@ function onFileChanged(e: Event) {
   }
 }
 
-function handleFiles(file: File) {
+async function handleFiles(file: File) {
+  // Check if the file is an MKV
+  if (file.type === "video/x-matroska" || file.name.endsWith(".mkv")) {
+    // Convert MKV to MP4 using FFmpeg
+    const ffmpeg = new FFmpeg();
+
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = async function (event) {
+      const videoData = new Uint8Array(event.target!.result as ArrayBuffer);
+
+      ffmpeg.on("log", (y: any) => {
+        console.log(y.message);
+      });
+
+      await ffmpeg.load({
+        coreURL: await toBlobURL(
+          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
+          "text/javascript"
+        ),
+        wasmURL: await toBlobURL(
+          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
+          "application/wasm"
+        ),
+        workerURL: await toBlobURL(
+          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.worker.js",
+          "text/javascript"
+        ),
+      });
+
+      console.log("yeah");
+      await ffmpeg.writeFile("input.mkv", videoData);
+
+      await ffmpeg.exec([
+        "-i",
+        "input.mkv",
+        "-c",
+        "copy", // Copy streams without re-encoding
+        "output.mp4",
+      ]);
+
+      const data = (await ffmpeg.readFile("output.mp4")) as any;
+      const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
+      const mp4File = new File([videoBlob], "converted.mp4", {
+        type: "video/mp4",
+      });
+
+      // Proceed with the converted MP4 file
+      processVideoFile(mp4File);
+    };
+  } else {
+    // If the file is not MKV, proceed directly
+    processVideoFile(file);
+  }
+}
+
+function processVideoFile(file: File) {
   videoFile.value = file;
   const url = URL.createObjectURL(file);
   player.src({ type: file.type, src: url });
@@ -325,87 +328,113 @@ function togglePlayPause() {
   isPlaying.value = !player.paused();
 }
 
-async function processVideo() {
-  isProcessing.value = true;
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-  if (!videoFile.value) return;
+async function compressVideo(ffmpeg: any) {
+  const resolutionOption: any = {
+    "64": "scale=128:-1",   // 64p
+    "144": "scale=256:-1",  // 144p
+    "240": "scale=426:-1",  // 240p
+    "360": "scale=640:-1",  // 360p
+    "480": "scale=854:-1",  // 480p
+    "720": "scale=1280:-1", // 720p
+  };
 
-  const start =
-    (leftHandleX.value / timeline.value!.getBoundingClientRect().width) *
-    player.duration();
-  const end =
-    (rightHandleX.value / timeline.value!.getBoundingClientRect().width) *
-    player.duration();
-  const duration = end - start;
+
+  const ffmpegArgs = [
+    "-ss",
+    selectedStartTime.value.toString(), // Start time
+    "-i",
+    "input.mp4",
+    "-vf",
+    resolutionOption[resolution.value], // Rescale the video
+    "-t",
+    selectedDuration.value.toString(), // Duration
+    "-b:v",
+    `${bitrate.value}k`, // User-specified bitrate
+    "-preset",
+    "ultrafast", // Faster encoding preset
+    "-crf",
+    "30", // Constant rate factor (lower quality for faster encoding)
+    "-f",
+    "mp4", // Output format
+    "output.mp4",
+  ];
+
+  console.log('executing')
+  await ffmpeg.exec(ffmpegArgs);
+}
+
+async function processVideo(maxIterations = 5) {
+  isProcessing.value = true;
+
+  iteration.value = 0;
+  let fileSize = videoSize.value;
+  const ffmpeg = new FFmpeg();
+  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+
+  ffmpeg.on("log", (y: any) => {
+    console.log(y)
+    const timeMatch = y.message.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
+
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const seconds = parseFloat(timeMatch[3]);
+
+      // Convert the time to total seconds
+      const totalTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
+      processProgress.value = (totalTimeInSeconds / selectedDuration.value) * 100;
+    }
+  });
+
+  await ffmpeg.load({
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+    workerURL: await toBlobURL(
+      `${baseURL}/ffmpeg-core.worker.js`,
+      "text/javascript"
+    ),
+  });
 
   const reader = new FileReader();
   reader.readAsArrayBuffer(videoFile.value);
   reader.onload = async function (event) {
     const videoData = new Uint8Array(event.target!.result as ArrayBuffer);
-
-    const ffmpeg = new FFmpeg();
-
-    ffmpeg.on("log", (y: any) => {
-      const timeMatch = y.message.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
-
-      if (timeMatch) {
-        const hours = parseInt(timeMatch[1], 10);
-        const minutes = parseInt(timeMatch[2], 10);
-        const seconds = parseFloat(timeMatch[3]);
-
-        // Convert the time to total seconds
-        const totalTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
-        processProgress.value = (totalTimeInSeconds / duration) * 100;
-      }
-    });
-
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        "application/wasm"
-      ),
-      workerURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.worker.js`,
-        "text/javascript"
-      ),
-    });
-
-    // Write the input video to FFmpeg's virtual filesystem
+    let data: any
     await ffmpeg.writeFile("input.mp4", videoData);
 
-    const resolutionOption: any = {
-      "240": "scale=426:-1",
-      "360": "scale=640:-1",
-      "480": "scale=854:-1",
-      "720": "scale=1280:-1",
-    };
+    while (iteration.value < maxIterations) {
+      // Compress the video with the current resolution and bitrate
+      await compressVideo(ffmpeg);
 
-    // Execute FFmpeg commands to process the video
-    const ffmpegArgs = [
-      "-ss",
-      start.toString(), // Start time
-      "-i",
-      "input.mp4",
-      "-vf",
-      resolutionOption[resolution.value], // Rescale the video
-      "-t",
-      duration.toString(), // Duration
-      "-b:v",
-      `${bitrate.value}k`, // User-specified bitrate
-      "-preset",
-      "ultrafast", // Faster encoding preset
-      "-crf",
-      "24", // Constant rate factor (lower quality for faster encoding)
-      "-f",
-      "mp4", // Output format
-      "output.mp4",
-    ];
 
-    await ffmpeg.exec(ffmpegArgs);
+      data = (await ffmpeg.readFile("output.mp4")) as any;
+      fileSize = await data.length;
+
+      console.log(
+        `Output file size: ${(fileSize / (1024 * 1024)).toFixed(2)} MB`
+      );
+
+      // Check if the file size is within the acceptable range of the target size
+      if (fileSize <= targetSizeMB.value * 1024 * 1024) {
+        console.log("Target size achieved!");
+        break;
+      }
+
+      // If the file size is too large, reduce bitrate and resolution
+      bitrate.value *= 0.8;
+
+      const resolutions = ["720", "480", "360", "240", "144", "64"];
+      const currentIndex = resolutions.indexOf(resolution.value);
+
+      resolution.value =
+        currentIndex < resolutions.length - 1
+          ? resolutions[currentIndex + 1]
+          : "240";
+
+      iteration.value++;
+    }
 
     // Read the processed video from FFmpeg's virtual filesystem
-    const data = (await ffmpeg.readFile("output.mp4")) as any;
     const videoBlob = new Blob([data.buffer], { type: "video/mp4" });
     const videoUrl = URL.createObjectURL(videoBlob);
 
@@ -418,7 +447,7 @@ async function processVideo() {
     document.body.removeChild(a);
     isProcessing.value = false;
     processProgress.value = 0;
-  };
+  }
 }
 
 function formatTime(time: number) {
