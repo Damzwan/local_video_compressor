@@ -59,7 +59,7 @@
       <div v-show="isProcessing" class="flex flex-col justify-center items-center p-8">
         <p class="text-2xl">Processing...</p>
         <p class="text-lg">{{ `Attempt ${iteration + 1}: Trying resolution ${resolution
-          } and bitrate ${bitrate} kbps` }}</p>
+          }p and bitrate ${bitrate} kbps` }}</p>
 
         <progress class="progress progress-primary w-96 mt-3" :value="processProgress" max="100"></progress>
       </div>
@@ -73,6 +73,11 @@
         <p class="text-gray-500">
           Drag and drop video file here, or click to select files
         </p>
+      </div>
+
+      <div class="mt-4 flex flex-col justify-center items-center" v-if="mkvDetected">
+        <p class="text-lg text-red-600">Stupid Mkv file detected, wait a bit...</p>
+        <progress class="progress w-56 progress-primary mt-4" />
       </div>
     </div>
   </div>
@@ -112,6 +117,8 @@ const selectedDuration = ref(0);
 const isPlaying = ref(true);
 
 const iteration = ref(0);
+
+const mkvDetected = ref(false)
 
 useDraggable(leftHandle, {
   containerElement: timeline,
@@ -252,6 +259,7 @@ function onFileChanged(e: Event) {
 async function handleFiles(file: File) {
   // Check if the file is an MKV
   if (file.type === "video/x-matroska" || file.name.endsWith(".mkv")) {
+    mkvDetected.value = true;
     // Convert MKV to MP4 using FFmpeg
     const ffmpeg = new FFmpeg();
 
@@ -279,7 +287,6 @@ async function handleFiles(file: File) {
         ),
       });
 
-      console.log("yeah");
       await ffmpeg.writeFile("input.mkv", videoData);
 
       await ffmpeg.exec([
@@ -463,6 +470,8 @@ function reset() {
   showVideoEditing.value = false;
   leftHandleX.value = 0;
   fileInput.value.value = null;
+  mkvDetected.value = false;
+
 }
 </script>
 
