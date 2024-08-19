@@ -12,7 +12,7 @@
     </div>
     <div v-show="showVideoEditing">
       <div v-show="!isProcessing" class="flex flex-col justify-center items-center p-8">
-        <video ref="playerRef" class="video-js cursor-pointer" width="500" @click="togglePlayPause" muted></video>
+        <video ref="playerRef" class="video-js cursor-pointer" width="500" @click="togglePlayPause"></video>
 
         <div class="flex items-center mt-4">
           <button class="btn btn-primary" @click="togglePlayPause">
@@ -108,8 +108,8 @@ const offsetBetweenHandles = 5;
 const isProcessing = ref(false);
 const processProgress = ref(0);
 
-const targetSizeMB = ref(10);
-const resolution = ref("360");
+const targetSizeMB = ref(25);
+const resolution = ref("720");
 const bitrate = ref(200);
 const videoSize = ref(0);
 const selectedStartTime = ref(0);
@@ -119,6 +119,7 @@ const isPlaying = ref(true);
 const iteration = ref(0);
 
 const mkvDetected = ref(false)
+const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm'
 
 useDraggable(leftHandle, {
   containerElement: timeline,
@@ -273,16 +274,10 @@ async function handleFiles(file: File) {
       });
 
       await ffmpeg.load({
-        coreURL: await toBlobURL(
-          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
-          "text/javascript"
-        ),
-        wasmURL: await toBlobURL(
-          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
-          "application/wasm"
-        ),
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
         workerURL: await toBlobURL(
-          "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.worker.js",
+          `${baseURL}/ffmpeg-core.worker.js`,
           "text/javascript"
         ),
       });
@@ -348,23 +343,25 @@ async function compressVideo(ffmpeg: any) {
 
   const ffmpegArgs = [
     "-ss",
-    selectedStartTime.value.toString(), // Start time
+    selectedStartTime.value.toString(),
     "-i",
     "input.mp4",
     "-vf",
-    resolutionOption[resolution.value], // Rescale the video
+    resolutionOption[resolution.value],
     "-t",
-    selectedDuration.value.toString(), // Duration
-    "-b:v",
-    `${bitrate.value}k`, // User-specified bitrate
-    "-preset",
-    "ultrafast", // Faster encoding preset
+    selectedDuration.value.toString(),
     "-crf",
-    "30", // Constant rate factor (lower quality for faster encoding)
+    "32", // You can also try lower values like 28 to further reduce size
+    "-preset",
+    "ultrafast", // `slow` or `medium` will give better compression at the cost of speed
+    "-threads",
+    "4",
     "-f",
-    "mp4", // Output format
+    "mp4",
     "output.mp4",
   ];
+
+
 
   console.log('executing')
   await ffmpeg.exec(ffmpegArgs);
@@ -376,8 +373,6 @@ async function processVideo(maxIterations = 5) {
   iteration.value = 0;
   let fileSize = videoSize.value;
   const ffmpeg = new FFmpeg();
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-
   ffmpeg.on("log", (y: any) => {
     console.log(y)
     const timeMatch = y.message.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
