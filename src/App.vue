@@ -15,6 +15,9 @@
         <video ref="playerRef" class="video-js cursor-pointer" width="500" @click="togglePlayPause"></video>
 
         <div class="flex items-center mt-4">
+          <button class="btn btn-primary mr-3" @click="toggleMute">
+            {{ isMuted ? "Unmute" : "Mute " }}
+          </button>
           <button class="btn btn-primary" @click="togglePlayPause">
             {{ isPlaying ? "Pause" : "Play " }}
           </button>
@@ -115,11 +118,13 @@ const videoSize = ref(0);
 const selectedStartTime = ref(0);
 const selectedDuration = ref(0);
 const isPlaying = ref(true);
+const isMuted = ref(false);
 
 const iteration = ref(0);
 
 const mkvDetected = ref(false)
 const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm'
+
 
 useDraggable(leftHandle, {
   containerElement: timeline,
@@ -367,7 +372,13 @@ async function compressVideo(ffmpeg: any) {
   await ffmpeg.exec(ffmpegArgs);
 }
 
+function toggleMute() {
+  isMuted.value = !isMuted.value;
+  player.muted(isMuted.value)
+}
+
 async function processVideo(maxIterations = 5) {
+  if (!isMuted.value) player.muted(true)
   isProcessing.value = true;
 
   iteration.value = 0;
@@ -449,6 +460,7 @@ async function processVideo(maxIterations = 5) {
     document.body.removeChild(a);
     isProcessing.value = false;
     processProgress.value = 0;
+    if (!isMuted.value) player.muted(false)
   }
 }
 
